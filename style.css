@@ -130,7 +130,7 @@ progress {
 }
 
 .slider-controls button,
-#shuffle-words {
+#shuffle-words, #restart, #training {
   color: #212529;
   background-color: #f8f9fa;
   border: 1px solid #d3d4dc;
@@ -139,7 +139,7 @@ progress {
 }
 
 .slider-controls button:hover,
-#shuffle-words:hover {
+#shuffle-words:hover, #restart:hover, #training:hover {
   background-color: #dadbdc;
 }
 
