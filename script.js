@@ -20,7 +20,7 @@ const buttonRestart = document.querySelector("#restart");
 const resultsContent = document.querySelector(".results-content");
 const buttonTraining = document.querySelector("#training");
 const examWords = [];
-
+const dictionary = {};
 
 let currentWord = +(document.querySelector("#current-word").textContent);
 let counter = 0;
@@ -67,9 +67,21 @@ const words = [
 
 const copyWords = [...words];
 
+// Получаем словарь
+getDictionary();
+
 
 // Создание первой карточки по умолчанию 
 createFlipCard(words[counter]);
+
+
+// Функция для получения словаря словаря
+function getDictionary() {
+  words.forEach((item) => {
+    dictionary[item.word] = item.translation;
+    dictionary[item.translation] = item.word;
+  });
+}
 
 
 // Функция создание Флип-карточки
@@ -103,8 +115,8 @@ function makeStatsByTemplate(obj) {
 // Функция перемешивания массива
 function shuffle(arr){
 	for(let i = 0; i < arr.length; i++){
-		let randomIndex = Math.floor(Math.random() * arr.length);
-		let temp = arr[randomIndex];
+		const randomIndex = Math.floor(Math.random() * arr.length);
+		const temp = arr[randomIndex];
 		arr[randomIndex] = arr[i];
 		arr[i] = temp;
 	}
@@ -116,7 +128,7 @@ function shuffle(arr){
 // Функция получения массива слов и их карточек в рандомном порядке
 function getWordCards() {
   words.forEach((item) => {
-    examWords.push(item.word, item.translation)
+    examWords.push(item.word, item.translation);
   });
 
   shuffle(examWords).forEach((item) => {
@@ -140,6 +152,45 @@ function finish() {
       makeStatsByTemplate(item);
     });    
   }, 10);
+}
+
+
+// Функция удаления карточек, если они совпали
+function removeCards() {
+  secondCard.classList.add("correct");
+
+  firstCard.classList.add('fade-out');
+  secondCard.classList.add('fade-out');
+
+  examWords.splice(examWords.findIndex((item) => item === firstCard.textContent), 1);
+  examWords.splice(examWords.findIndex((item) => item === secondCard.textContent), 1);
+
+  firstCard = null;
+  secondCard = null;
+
+  correctPercent += 20;
+  document.querySelector("#correct-percent").textContent = `${correctPercent}%`;
+  examProgress.value += 20;
+}
+
+
+// Функция сброса карточек, если они не совпали
+function resetCards() {
+  secondCard.classList.add("wrong");
+
+  words.forEach((item) => {
+    if (item.word === secondCard.textContent || item.translation === secondCard.textContent) {
+      item.attempts += 1;
+      return;
+    }
+  });
+
+  setTimeout(() => {
+    firstCard.classList.remove('correct');
+    secondCard.classList.remove('wrong');
+    firstCard = null;
+    secondCard = null;
+  }, 500);
 }
 
 
@@ -196,12 +247,12 @@ flipCard.addEventListener("click", () => {
 
 // Обработчик для кнопки "Назад"
 buttonBack.addEventListener("click", () => {
-  if (counter === (words.length - 1)) {
+  if (counter === (copyWords.length - 1)) {
     buttonNext.disabled = false;
   }
   
   counter--;
-  createFlipCard(words[counter]);  
+  createFlipCard(copyWords[counter]);  
   currentWord -= 1;
   wordsProgress.value -= 20;
   document.querySelector("#current-word").textContent = currentWord;
@@ -219,12 +270,12 @@ buttonNext.addEventListener("click", () => {
   }
 
   counter++;
-  createFlipCard(words[counter]);    
+  createFlipCard(copyWords[counter]);    
   currentWord += 1;
   wordsProgress.value += 20;
   document.querySelector("#current-word").textContent = currentWord;
 
-  if (counter === (words.length - 1)) {
+  if (counter === (copyWords.length - 1)) {
     buttonNext.disabled = true;
   }
 });
@@ -266,48 +317,15 @@ examCards.addEventListener("click", (event) => {
   }
 
   if (firstCard && secondCard) {
-    words.forEach((item) => {
-      if ((item.word === firstCard.textContent && item.translation === element.textContent) || (item.word === element.textContent && item.translation === firstCard.textContent)) {
-        secondCard.classList.add("correct");
+    if (dictionary[firstCard.textContent] === secondCard.textContent) {
+      removeCards();
 
-        firstCard.classList.add('fade-out');
-        secondCard.classList.add('fade-out');
-
-        examWords.splice(examWords.findIndex((item) => item === firstCard.textContent), 1);
-        examWords.splice(examWords.findIndex((item) => item === secondCard.textContent), 1);
-
-        firstCard = null;
-        secondCard = null;
-
-        correctPercent += 20;
-        document.querySelector("#correct-percent").textContent = `${correctPercent}%`;
-        examProgress.value += 20;
-
-        if (examWords.length === 0) {
-          finish();
-        }
-
-        return;
+      if (examWords.length === 0) {
+        finish();
       }
-    });
-  }
-  
-  if (!secondCard.classList.contains("correct")) {
-    secondCard.classList.add("wrong");
-
-    words.forEach((item) => {
-      if (item.word === secondCard.textContent || item.translation === secondCard.textContent) {
-        item.attempts += 1;
-        return;
-      }
-    });
-
-    setTimeout(() => {
-      firstCard.classList.remove('correct');
-      element.classList.remove('wrong');
-      firstCard = null;
-      secondCard = null;
-    }, 500);
+    } else {
+      resetCards();
+    }
   }
 });
 
@@ -332,8 +350,9 @@ buttonTraining.addEventListener("click", () => {
   studyCards.classList.remove("hidden");
   examCards.innerHTML = "";
 
+  copyWords.splice(0, copyWords.length, ...words);
   counter = 0;
-  createFlipCard(words[counter]);
+  createFlipCard(copyWords[counter]);
   currentWord = 1;
   wordsProgress.value = 20;
   document.querySelector("#current-word").textContent = currentWord;
